@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 
 LOCAL_APPS = [
     'users.apps.UsersConfig',
+    'common.apps.CommonConfig',
 ]
 
 THIRD_PARTY_APPS = [
