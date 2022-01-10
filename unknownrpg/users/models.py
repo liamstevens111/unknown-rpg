@@ -52,6 +52,9 @@ class BaseUser(BaseModel, AbstractBaseUser):
 
     objects = BaseUserManager()
 
+    class Meta:
+        verbose_name = 'User'
+
     USERNAME_FIELD = 'email'
 
     def __str__(self):
