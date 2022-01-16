@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from items.models import Item
 
+from django.core.exceptions import ValidationError 
 
 class Character(models.Model):
     user = models.OneToOneField(
@@ -52,5 +53,14 @@ class CharacterEquipment(models.Model):
     slot = models.CharField('slot', max_length=20, choices=SLOT_TYPE_CHOICES)
 
     class Meta:
-        unique_together = ('character', 'slot',)
+        constraints = [
+            models.UniqueConstraint(fields=('character', 'slot'), name='unique_character_slot')
+        ]
         verbose_name_plural = 'Character Equipment'
+    
+
+    def clean(self):
+        super().clean()
+
+        if self.slot != self.item.type:
+            raise ValidationError('The item type and slot are different')
