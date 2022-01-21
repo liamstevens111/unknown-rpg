@@ -3,11 +3,12 @@ from django.conf import settings
 from items.models import Item
 
 from django.core.exceptions import ValidationError 
+from django.db.models.functions import Lower
 
 class Character(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=20, unique=True)
     level = models.IntegerField()
     gold = models.IntegerField()
     current_hp = models.IntegerField()
@@ -17,9 +18,15 @@ class Character(models.Model):
         Item, through='CharacterEquipment', related_name='equipment_character')
     inventory = models.ManyToManyField(
         Item, through='CharacterInventory', related_name='inventory_character')
+    
+    class Meta:
+        constraints = [
+                models.UniqueConstraint(Lower('name'), name='unique_lower_character_name')
+            ]
 
     def __str__(self):
         return self.name
+    
 
 
 class CharacterInventory(models.Model):
