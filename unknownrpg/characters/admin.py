@@ -15,7 +15,7 @@ class CharacterInventoryInline(admin.TabularInline):
 
 class CharacterAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'user', 'level',
-                    'current_xp', 'current_hp', 'gold')
+                    'current_xp', 'gold')
     list_display_links = ('name',)
     inlines = (CharacterEquipmentInline, CharacterInventoryInline,)
 
