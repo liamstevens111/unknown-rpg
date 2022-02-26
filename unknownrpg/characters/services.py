@@ -5,8 +5,6 @@ from .models import Character
 from items.services import item_create
 from items.models import ItemTemplate, Item
 
-from characters.models import CharacterEquipment, CharacterInventory
-
 # Internal
 
 
@@ -15,80 +13,41 @@ def character_create(*, user: str, name: str) -> Character:
     character.full_clean()
     character.save()
 
-
-def item_add(*, character: Character, item_template: ItemTemplate):
-    if character.has_space:
-        item = item_create(item_template=item_template)
-        character.inventory.add(item)
-        return True
-    return False
-
-
 # Internal
 
 
 def item_buy(*, character: Character, item_template: ItemTemplate):
     # Maybe can do some checks here for when/where the purchase is being made, ie shop ID parameter to ensure they are in correct location
-    if item_template.is_purchasable and character.gold >= item_template.value:
-        if item_add(character=character, item_template=item_template):
-            character.gold = F('gold') - item_template.value
-            # character.full_clean()
-            character.save()
+    if item_template.is_purchasable and character.gold >= item_template.value and character.has_space:
+        item_create(character=character, item_template=item_template)
+        character.gold = F('gold') - item_template.value
+        character.save()
 
 
 def item_sell(*, character: Character, item: Item):
-    # This gets and deletes the ItemInventory relation at once, then deletes the Item
-
-    # character.inventory.through.objects.get(item=item).item.delete()
-    # CharacterInventory.objects.get(character=character, item=item).item.delete()
-    CharacterInventory.objects.get(character=character, item=item).delete()
-    item.delete()
-
-    character.gold = F('gold') + item.template.value
-    # character.full_clean()
-    character.save()
+    if item.character == character and item.container == Item.INVENTORY:
+        item.delete()
+        character.gold = F('gold') + item.template.value
+        character.save()
 
 
 def item_equip(*, character: Character, item: Item):
-    character_inventory = CharacterInventory.objects.select_related(
-        'item').get(character=character, item=item)
+    if item.character == character and character.level >= item.level_requirement and item.container == Item.INVENTORY:
+        try:
+            equipped_item = character.items.get(
+                container=Item.EQUIPMENT, template__type=item.type)
+        except Item.DoesNotExist:
+            equipped_item = None
 
-    if character.level < character_inventory.item.template.level_requirement:
-        return
+        item.container = Item.EQUIPMENT
 
-    try:
-        character_equipment = CharacterEquipment.objects.select_related(
-            'item').get(character=character, slot=character_inventory.item.template.type)
-    except CharacterEquipment.DoesNotExist:
-        character_equipment = None
-
-    # Current no item equipped in that slot
-    if not character_equipment:
-        character_equipment = CharacterEquipment(
-            character=character, item=character_inventory.item, slot=character_inventory.item.template.type)
-
-        character_inventory.delete()
-        character_equipment.full_clean()
-        character_equipment.save()
-    else:
-        character_equipment_item = character_equipment.item
-        character_equipment.item = character_inventory.item
-        character_inventory.item = character_equipment_item
-
-        character_equipment.full_clean()
-        character_inventory.full_clean()
-        character_equipment.save()
-        character_inventory.save()
+        if equipped_item:
+            equipped_item.container = Item.INVENTORY
+            equipped_item.save()
+        item.save()
 
 
 def item_unequip(*, character: Character, item: Item):
-    # Not passing in slot for now, don't need to?
-    if character.has_space:
-        character_equipment = CharacterEquipment.objects.select_related(
-            'item').get(character=character, item=item)
-
-        character_inventory = CharacterInventory(
-            character=character, item=character_equipment.item)
-        character_equipment.delete()
-        character_inventory.full_clean()
-        character_inventory.save()
+    if character.has_space and item.character == character and item.container == Item.EQUIPMENT:
+        item.container = Item.INVENTORY
+        item.save()

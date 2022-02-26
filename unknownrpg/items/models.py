@@ -1,5 +1,7 @@
 from django.db import models
+from django.db.models import Q
 from common.models import BaseModel
+from characters.models import Character
 
 
 class ItemTemplate(BaseModel):
@@ -29,7 +31,7 @@ class ItemTemplate(BaseModel):
     is_purchasable = models.BooleanField(
         default=False, verbose_name='Is purchasable')
     # image = Field to store Image?
-    type = models.CharField('type', max_length=20,
+    type = models.CharField(max_length=20,
                             choices=ITEM_TYPE_CHOICES, default=WEAPON)
 
     def __str__(self):
@@ -37,34 +39,52 @@ class ItemTemplate(BaseModel):
 
 
 class Item(BaseModel):
+    INVENTORY = 'inventory'
+    EQUIPMENT = 'equipment'
+
+    CONTAINER_CHOICES = (
+        (INVENTORY, 'Inventory'),
+        (EQUIPMENT, 'Equipment'),
+    )
+
+    character = models.ForeignKey(
+        Character, related_name='items', on_delete=models.CASCADE)
     template = models.ForeignKey(ItemTemplate, on_delete=models.CASCADE)
     name = models.CharField('name', max_length=30, unique=False)
+    container = models.CharField(
+        max_length=20, choices=CONTAINER_CHOICES, default=INVENTORY)
 
-    @property
+    # class Meta:
+    #     constraints = [
+    #         models.UniqueConstraint(
+    #             fields=('character', 'container_type'), condition=Q(container_type='equipment'), name='unique_character_equipped_item_type')
+    #     ]
+
+    @ property
     def min_damage(self):
         return self.template.min_damage
 
-    @property
+    @ property
     def max_damage(self):
         return self.template.max_damage
 
-    @property
+    @ property
     def min_armour(self):
         return self.template.min_armour
 
-    @property
+    @ property
     def max_armour(self):
         return self.template.max_armour
 
-    @property
+    @ property
     def type(self):
         return self.template.type
 
-    @property
+    @ property
     def value(self):
         return self.template.value
 
-    @property
+    @ property
     def level_requirement(self):
         return self.template.level_requirement
 

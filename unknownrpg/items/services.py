@@ -1,13 +1,15 @@
 from .models import ItemTemplate, Item
+from characters.models import Character
 
-# Name or Item object?
 
-
-def item_create(*, item_template: ItemTemplate) -> Item:
-    item = Item(template=item_template, name=item_template.name)
-    item.full_clean()
-    item.save()
-    return item
+def item_create(*, character: Character, item_template: ItemTemplate) -> Item:
+    if character.has_space:
+        item = Item(character=character, template=item_template,
+                    name=item_template.name, container=Item.INVENTORY)
+        item.full_clean()
+        item.save()
+        return item
+    return None
 
 
 def item_shop_list():
