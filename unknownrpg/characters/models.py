@@ -6,6 +6,9 @@ from common.models import BaseModel
 from django.core.exceptions import ValidationError
 from django.db.models.functions import Lower
 
+from .constants import max_inventory_size, level_xp_requirements
+from .formulas import max_hp_from_character_level
+
 
 class Character(BaseModel):
     user = models.OneToOneField(
@@ -29,6 +32,37 @@ class Character(BaseModel):
     def __str__(self):
         return self.name
 
+    @property
+    def max_hp(self):
+        return max_hp_from_character_level(level=self.level)
+
+    @property
+    def required_xp(self):
+        return level_xp_requirements.get(self.level + 1, None)
+
+    @property
+    def free_spaces(self):
+        return max_inventory_size - self.inventory.count()
+
+    @property
+    def has_space(self):
+        return self.free_spaces > 0
+
+    def gain_xp(self, value):
+        if self.required_xp is None or value <= 0:
+            return
+
+        self.current_xp += value
+
+        while self.required_xp is not None and self.current_xp >= self.required_xp:
+            self.current_xp -= self.required_xp
+            self.level += 1
+        else:
+            if self.required_xp is None:
+                self.current_xp = 0
+
+        self.save()
+
 
 class CharacterInventory(BaseModel):
     character = models.ForeignKey(Character, on_delete=models.CASCADE)
@@ -36,6 +70,11 @@ class CharacterInventory(BaseModel):
 
     class Meta:
         verbose_name_plural = 'Character Inventory'
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=('character', 'item'), name='unique_character_item')
+        ]
 
 
 class CharacterEquipment(BaseModel):
@@ -61,11 +100,12 @@ class CharacterEquipment(BaseModel):
     slot = models.CharField('slot', max_length=20, choices=SLOT_TYPE_CHOICES)
 
     class Meta:
+        verbose_name_plural = 'Character Equipment'
+
         constraints = [
             models.UniqueConstraint(
                 fields=('character', 'slot'), name='unique_character_slot')
         ]
-        verbose_name_plural = 'Character Equipment'
 
     def clean(self):
         super().clean()

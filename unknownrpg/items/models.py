@@ -1,7 +1,8 @@
 from django.db import models
+from common.models import BaseModel
 
 
-class ItemBase(models.Model):
+class ItemTemplate(BaseModel):
     WEAPON = 'weapon'
     ARMOUR = 'armour'
     HELMET = 'helmet'
@@ -25,20 +26,47 @@ class ItemBase(models.Model):
     min_armour = models.IntegerField()
     max_armour = models.IntegerField()
     value = models.IntegerField()
+    is_purchasable = models.BooleanField(
+        default=False, verbose_name='Is purchasable')
     # image = Field to store Image?
     type = models.CharField('type', max_length=20,
                             choices=ITEM_TYPE_CHOICES, default=WEAPON)
-
-    class Meta:
-        abstract = True
 
     def __str__(self):
         return self.name
 
 
-class ItemTemplate(ItemBase):
-    pass
-
-
-class Item(ItemBase):
+class Item(BaseModel):
     template = models.ForeignKey(ItemTemplate, on_delete=models.CASCADE)
+    name = models.CharField('name', max_length=30, unique=False)
+
+    @property
+    def min_damage(self):
+        return self.template.min_damage
+
+    @property
+    def max_damage(self):
+        return self.template.max_damage
+
+    @property
+    def min_armour(self):
+        return self.template.min_armour
+
+    @property
+    def max_armour(self):
+        return self.template.max_armour
+
+    @property
+    def type(self):
+        return self.template.type
+
+    @property
+    def value(self):
+        return self.template.value
+
+    @property
+    def level_requirement(self):
+        return self.template.level_requirement
+
+    def __str__(self):
+        return self.name
