@@ -1,9 +1,8 @@
 from rest_framework import serializers
-from .models import Item, ItemTemplate
+from items.models import Item, ItemTemplate
 from users.models import BaseUser
-from .services import item_shop_list
 from characters.models import Character
-from characters.services import item_buy, item_sell
+from characters.services import item_buy, item_sell, item_equip, item_unequip
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,7 +13,40 @@ from common.utils import get_object
 from rest_framework import status
 
 
-class ItemShopListApi(APIView):
+class CharacterListApi(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    class OutputSerializer(serializers.Serializer):
+        name = serializers.CharField()
+        level = serializers.IntegerField()
+
+    def get(self, request):
+        characters = Character.objects.rankings()
+        data = self.OutputSerializer(characters, many=True).data
+
+        return Response(data)
+
+
+class CharacterDetailApi(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    # class AuthenticatedOutputSerializer(serializers.Serializer):
+    #     name = serializers.CharField()
+    #     level = serializers.IntegerField()
+    #     items = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+
+    class OutputSerializer(serializers.Serializer):
+        name = serializers.CharField()
+        level = serializers.IntegerField()
+
+    def get(self, request, name):
+        character = Character.objects.get(name__iexact=name)
+        serializer = self.OutputSerializer(character)
+
+        return Response(serializer.data)
+
+
+class CharacterItemsListApi(APIView):
     permission_classes = [permissions.AllowAny]
 
     class OutputSerializer(serializers.Serializer):
@@ -28,45 +60,25 @@ class ItemShopListApi(APIView):
         value = serializers.IntegerField()
         type = serializers.CharField()
 
-    def get(self, request):
-        items = item_shop_list()
+        container = serializers.CharField()
+        has_bonuses = serializers.BooleanField()
+
+    def get(self, request, name):
+        character = Character.objects.get(name__iexact=name)
+
+        items = character.items
         data = self.OutputSerializer(items, many=True).data
 
         return Response(data)
 
 
-class ItemShopBuyApi(APIView):
+class CharacterItemsEquipApi(APIView):
     permission_classes = [permissions.AllowAny]
 
     class InputSerializer(serializers.Serializer):
-        character_id = serializers.IntegerField()
         item_id = serializers.IntegerField()
 
-    def post(self, request):
-        serializer = self.InputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        item_template = get_object(
-            ItemTemplate, id=serializer.validated_data['item_id'])
-
-        character = get_object(
-            Character, id=serializer.validated_data['character_id'])
-
-        if request.user.is_authenticated and request.user.character.id == character.id:
-            item_buy(
-                character=character, item_template=item_template)
-
-            return Response(status=status.HTTP_200_OK)
-
-
-class ItemShopSellApi(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    class InputSerializer(serializers.Serializer):
-        character_id = serializers.IntegerField()
-        item_id = serializers.IntegerField()
-
-    def post(self, request):
+    def post(self, request, name):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -74,10 +86,33 @@ class ItemShopSellApi(APIView):
             Item, id=serializer.validated_data['item_id'])
 
         character = get_object(
-            Character, id=serializer.validated_data['character_id'])
+            Character, name__iexact=name)
 
         if request.user.is_authenticated and request.user.character.id == character.id:
-            item_sell(
+            item_equip(
+                character=character, item=item)
+
+            return Response(status=status.HTTP_200_OK)
+
+
+class CharacterItemsUnequipApi(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    class InputSerializer(serializers.Serializer):
+        item_id = serializers.IntegerField()
+
+    def post(self, request, name):
+        serializer = self.InputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        item = get_object(
+            Item, id=serializer.validated_data['item_id'])
+
+        character = get_object(
+            Character, name__iexact=name)
+
+        if request.user.is_authenticated and request.user.character.id == character.id:
+            item_unequip(
                 character=character, item=item)
 
             return Response(status=status.HTTP_200_OK)

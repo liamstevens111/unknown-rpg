@@ -5,19 +5,14 @@ from .models import Character
 from items.services import item_create
 from items.models import ItemTemplate, Item
 
-# Internal
-
 
 def character_create(*, user: str, name: str) -> Character:
     character = Character(user=user, name=name, level=1, gold=0, current_xp=0)
     character.full_clean()
     character.save()
 
-# Internal
-
 
 def item_buy(*, character: Character, item_template: ItemTemplate):
-    # Maybe can do some checks here for when/where the purchase is being made, ie shop ID parameter to ensure they are in correct location
     if item_template.is_purchasable and character.gold >= item_template.value and character.has_space:
         item_create(character=character, item_template=item_template)
         character.gold = F('gold') - item_template.value

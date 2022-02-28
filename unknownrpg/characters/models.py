@@ -9,6 +9,11 @@ from .constants import max_inventory_size, level_xp_requirements
 from .formulas import max_hp_from_character_level
 
 
+class CharacterManager(models.Manager):
+    def rankings(self):
+        return self.order_by('-level', '-current_xp')[:20]
+
+
 class Character(BaseModel):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -16,6 +21,8 @@ class Character(BaseModel):
     level = models.IntegerField()
     gold = models.IntegerField()
     current_xp = models.IntegerField()
+
+    objects = CharacterManager()
 
     class Meta:
         constraints = [
@@ -27,20 +34,28 @@ class Character(BaseModel):
         return self.name
 
     @property
+    def inventory(self):
+        return self.items.filter(container='inventory')
+
+    @property
+    def equipment(self):
+        return self.items.filter(container='equipment')
+
+    @property
+    def free_spaces(self):
+        return max_inventory_size - self.inventory.count()
+
+    @property
+    def has_space(self):
+        return self.free_spaces > 0
+
+    @property
     def max_hp(self):
         return max_hp_from_character_level(level=self.level)
 
     @property
     def required_xp(self):
         return level_xp_requirements.get(self.level + 1, None)
-
-    @property
-    def free_spaces(self):
-        return max_inventory_size - self.items.filter(container='inventory').count()
-
-    @property
-    def has_space(self):
-        return self.free_spaces > 0
 
     def gain_xp(self, value):
         if self.required_xp is None or value <= 0:

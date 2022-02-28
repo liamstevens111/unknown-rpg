@@ -54,6 +54,13 @@ class Item(BaseModel):
     container = models.CharField(
         max_length=20, choices=CONTAINER_CHOICES, default=INVENTORY)
 
+    has_bonuses = models.BooleanField(default=False)
+    bonus_min_damage = models.IntegerField(default=0)
+    bonus_max_damage = models.IntegerField(default=0)
+    bonus_min_armour = models.IntegerField(default=0)
+    bonus_max_armour = models.IntegerField(default=0)
+    bonus_value = models.IntegerField(default=0)
+
     # class Meta:
     #     constraints = [
     #         models.UniqueConstraint(
@@ -62,19 +69,19 @@ class Item(BaseModel):
 
     @ property
     def min_damage(self):
-        return self.template.min_damage
+        return self.template.min_damage + self.bonus_min_damage
 
     @ property
     def max_damage(self):
-        return self.template.max_damage
+        return self.template.max_damage + self.bonus_max_damage
 
     @ property
     def min_armour(self):
-        return self.template.min_armour
+        return self.template.min_armour + self.bonus_min_armour
 
     @ property
     def max_armour(self):
-        return self.template.max_armour
+        return self.template.max_armour + self.bonus_max_armour
 
     @ property
     def type(self):
@@ -82,7 +89,7 @@ class Item(BaseModel):
 
     @ property
     def value(self):
-        return self.template.value
+        return self.template.value + self.bonus_value
 
     @ property
     def level_requirement(self):
