@@ -1,26 +1,23 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 
-from unknownrpg.users.models import BaseUser
-from unknownrpg.users.services import user_create
+from users.models import BaseUser
+from users.services import user_create
 
 
 class UserCreateTests(TestCase):
-    def test_user_without_password_is_created_with_unusable_one(self):
-        user = user_create(
-            email='random_user@email.com'
-        )
+    def setUp(self):
+        pass
 
-        self.assertFalse(user.has_usable_password())
+    def test_user_with_capitalized_email_is_normalized(self):
+        user = user_create(email='RANDOM_User@Email.Com',
+                           password='SomePassw0rd12', character_name='RandomCharacterName')
 
-    def test_user_with_capitalized_email_cannot_be_created(self):
-        user_create(
-            email='random_user@email.com'
-        )
+        self.assertEqual('random_user@email.com', user.email)
 
-        with self.assertRaises(ValidationError):
-            user_create(
-                email='RANDOM_user@email.com'
-            )
+        # with self.assertRaises(ValidationError):
+        #     user_create(
+        #         email='RANDOM_user@email.com'
+        #     )
 
-        self.assertEqual(1, BaseUser.objects.count())
+        # self.assertEqual(1, BaseUser.objects.count())

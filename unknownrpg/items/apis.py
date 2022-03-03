@@ -11,6 +11,8 @@ from rest_framework import authentication, permissions
 
 from common.utils import get_object
 
+from django.http import Http404
+
 from rest_framework import status
 
 
@@ -52,11 +54,15 @@ class ItemShopBuyApi(APIView):
         character = get_object(
             Character, id=serializer.validated_data['character_id'])
 
+        if item_template is None or character is None:
+            raise Http404
+
         if request.user.is_authenticated and request.user.character.id == character.id:
             item_buy(
                 character=character, item_template=item_template)
 
             return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_403_FORBIDDEN)
 
 
 class ItemShopSellApi(APIView):
@@ -76,8 +82,12 @@ class ItemShopSellApi(APIView):
         character = get_object(
             Character, id=serializer.validated_data['character_id'])
 
+        if item is None or character is None:
+            raise Http404
+
         if request.user.is_authenticated and request.user.character.id == character.id:
             item_sell(
                 character=character, item=item)
 
             return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_403_FORBIDDEN)

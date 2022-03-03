@@ -149,7 +149,9 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated', )
+        'rest_framework.permissions.IsAuthenticated', ),
+
+    'EXCEPTION_HANDLER': 'api.exception_handlers.custom_exception_handler'
 }
 
 SIMPLE_JWT = {

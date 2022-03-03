@@ -8,9 +8,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import authentication, permissions
 
+from django.http import Http404
+
 from common.utils import get_object
 
 from rest_framework import status
+from django.core.exceptions import PermissionDenied
 
 
 class CharacterListApi(APIView):
@@ -40,7 +43,12 @@ class CharacterDetailApi(APIView):
         level = serializers.IntegerField()
 
     def get(self, request, name):
-        character = Character.objects.get(name__iexact=name)
+        character = get_object(
+            Character, name__iexact=name)
+
+        if character is None:
+            raise Http404
+
         serializer = self.OutputSerializer(character)
 
         return Response(serializer.data)
@@ -64,7 +72,11 @@ class CharacterItemsListApi(APIView):
         has_bonuses = serializers.BooleanField()
 
     def get(self, request, name):
-        character = Character.objects.get(name__iexact=name)
+        character = get_object(
+            Character, name__iexact=name)
+
+        if character is None:
+            raise Http404
 
         items = character.items
         data = self.OutputSerializer(items, many=True).data
@@ -88,11 +100,15 @@ class CharacterItemsEquipApi(APIView):
         character = get_object(
             Character, name__iexact=name)
 
+        if item is None or character is None:
+            raise Http404
+
         if request.user.is_authenticated and request.user.character.id == character.id:
             item_equip(
                 character=character, item=item)
 
             return Response(status=status.HTTP_200_OK)
+        raise PermissionDenied()
 
 
 class CharacterItemsUnequipApi(APIView):
@@ -111,8 +127,12 @@ class CharacterItemsUnequipApi(APIView):
         character = get_object(
             Character, name__iexact=name)
 
+        if item is None or character is None:
+            raise Http404
+
         if request.user.is_authenticated and request.user.character.id == character.id:
             item_unequip(
                 character=character, item=item)
 
             return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_403_FORBIDDEN)
