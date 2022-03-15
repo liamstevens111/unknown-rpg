@@ -89,8 +89,9 @@ class CharacterItemsEquipApi(APIView):
 
     class InputSerializer(serializers.Serializer):
         item_id = serializers.IntegerField()
+        character_id = serializers.IntegerField()
 
-    def post(self, request, name):
+    def post(self, request):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -98,7 +99,7 @@ class CharacterItemsEquipApi(APIView):
             Item, id=serializer.validated_data['item_id'])
 
         character = get_object(
-            Character, name__iexact=name)
+            Character, id=serializer.validated_data['character_id'])
 
         if item is None or character is None:
             raise Http404
@@ -116,8 +117,9 @@ class CharacterItemsUnequipApi(APIView):
 
     class InputSerializer(serializers.Serializer):
         item_id = serializers.IntegerField()
+        character_id = serializers.IntegerField()
 
-    def post(self, request, name):
+    def post(self, request):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -125,7 +127,7 @@ class CharacterItemsUnequipApi(APIView):
             Item, id=serializer.validated_data['item_id'])
 
         character = get_object(
-            Character, name__iexact=name)
+            Character, id=serializer.validated_data['character_id'])
 
         if item is None or character is None:
             raise Http404
