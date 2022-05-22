@@ -1,3 +1,3 @@
 # unknown-rpg
 
-Start of project
+Backend API written in Python / Django for RPG game
